@@ -12,4 +12,7 @@ name="sourceprimitives",
     url="",
     packages=find_packages(),
     install_requires=['redis','logzero'],
+    entry_points = {'console_scripts': ['primitives-source-indexable = sourceprimitives.source_indexable:main',
+                                        ],
+                            },
 )
