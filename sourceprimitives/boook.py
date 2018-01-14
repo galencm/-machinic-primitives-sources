@@ -15,6 +15,8 @@ import roman
 import itertools
 import glob
 import os
+from logzero import logger
+
 #TODO pyicu for page numbers
 #TODO PRNG for text?
 
@@ -35,12 +37,11 @@ class Boook(object):
         sequence= 4
         paged=1
         for section,pages,numeration in self.sections:
-            print(section,sequence)
+            logger.info("section: {} sequence: {}".format(section,sequence))
             location = itertools.cycle(['bottom_left','bottom_right'])
             
             if section == 'index':
                 for page in range(1,pages+1):
-                    #print(sequence)
                     if numeration == 'partial':
                         adjusted_page=page+3 #hardcoded for title & toc
                     else:
@@ -57,15 +58,12 @@ class Boook(object):
                     toc_text+='{}          {}\n'.format(s,start)
                     if n == 'full':
                         start+=p
-
-                print(">>",toc_text)
-                print("-------")
+                logger.info("toc contents: {}".format(toc_text))
                 page_image(sequence,self.title,custom_text=toc_text,page_num=sequence,page_num_location='bottom_center',locale='roman_lower',split_width=75,paragraphs=16,sparsity=-1,output_directory=self.output_directory)
                 sequence +=1
-
             else:
                 for page in range(1,pages+1):
-                    print(">>>>>>>>",sequence,section)
+                    logger.info("sequence: {} section: {}".format(sequence,section))
                     if page == pages:
                         page_image(sequence,self.title,page_num=paged,paragraphs=9,page_num_location=next(location),output_directory=self.output_directory)
                     elif page == 1:
@@ -86,7 +84,6 @@ class Boook(object):
             sequence+=1
 
         blank((255,255,255),sequence,self.title,output_directory=self.output_directory)
-        print("^^^",sequence)
         sequence+=1
         blank((240,240,1),sequence,self.title,output_directory=self.output_directory)
 
@@ -116,7 +113,6 @@ def page_image(sequence,boook_name,chapter_header=None,chapter_header_location=N
     elif custom_text is not None:
         pagetext = custom_text
         lines = pagetext.split("\n")
-        print("custom text is ",lines)
     elif text is None and custom_text is None:
         pagetext=' '
 
@@ -174,7 +170,6 @@ def page_image(sequence,boook_name,chapter_header=None,chapter_header_location=N
     if page_num:
         if locale == 'roman_lower':
             page_num=roman.toRoman(page_num).lower()
-            print(page_num)
         draw.text(numeral_locations[page_num_location],str(page_num),font=font, fill=(15,15,15))
 
     if chapter_header:
