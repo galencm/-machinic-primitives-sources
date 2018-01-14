@@ -11,8 +11,9 @@ name="sourceprimitives",
     data_files = [("", ["LICENSE.txt"])],
     url="",
     packages=find_packages(),
-    install_requires=['redis','logzero'],
+    install_requires=['redis','logzero','zerorpc','python-consul','Pillow','lorem','roman'],
     entry_points = {'console_scripts': ['primitives-source-indexable = sourceprimitives.source_indexable:main',
+                                        'primitives-source-simple = sourceprimitives.source:main'
                                         ],
                             },
 )
