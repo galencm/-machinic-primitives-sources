@@ -12,7 +12,7 @@ import io
 import os
 import redis
 import uuid
-import boook
+from sourceprimitives import boook
 import zerorpc
 from logzero import logger
 import consul
@@ -182,7 +182,13 @@ class IndexableSource():
         r.hmset(self.state,self.markers)
 
 def main():
-    parser = argparse.ArgumentParser()
+    tutorial_string = """
+    Usage:
+
+        $ primitives-source-indexable --source boook --source-name bookendpoint
+
+    """
+    parser = argparse.ArgumentParser(description=tutorial_string,formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--host", help="host ip",default="127.0.0.1", required=False)
     parser.add_argument("-p", "--port", help="port number",default="4242", required=False)
     parser.add_argument("-d", "--directory", help="directory")
@@ -191,37 +197,30 @@ def main():
 
     source_key_prefix = "source:"
     args = parser.parse_args()
-    uuuu = str(uuid.uuid4())
-    uuuu_path = "/tmp/{}".format(uuuu)
-    #if args.source_name and args.directory:
+    source_uuid = str(uuid.uuid4())
+    source_path = "/tmp/{}".format(source_uuid)
 
     if args.source_name:
-        sn = r.get(source_key_prefix+args.source_name)
-        logger.info("{} found at {}".format(args.source_name,sn))
-        if sn:
-            uuuu_path = sn    
-            if not os.path.isdir(uuuu_path):
-                logger.warn("{} not found, creating".format(uuuu_path))
-                if args.source == 'boook':
-                    logger.info("creating boook at {}".format(args.source_name))
-                    #need to pass in params here...
-                    b = boook.Boook('texxt',[('toc',1,'partial'),('index',5,'partial'),('bar',5,'full'),('baz',5,'full'),('zab',5,'full'),('zoom',5,'full')],output_directory=uuuu_path)
-                    b.generate()
-                    logger.info("{} set to {}".format(args.source_name,uuuu_path))
-                    r.set(source_key_prefix+args.source_name,uuuu_path)
-        else:
-            logger.info("{} not found".format(args.source_name))
+        source_state_exists = r.get(source_key_prefix+args.source_name)
+        logger.info("{} found at {}".format(args.source_name,source_state_exists))
+        if source_state_exists:
+            logger.info("using existing: {}".format(source_path,source_state_exists))
+            source_path = source_state_exists
+
+        if not os.path.isdir(source_path) or not source_state_exists:
+            logger.warn("{} not found, creating".format(source_path))
             if args.source == 'boook':
                 logger.info("creating boook at {}".format(args.source_name))
                 #need to pass in params here...
-                b = boook.Boook('texxt',[('toc',1,'partial'),('index',5,'partial'),('bar',5,'full'),('baz',5,'full'),('zab',5,'full'),('zoom',5,'full')],output_directory=uuuu_path)
+                b = boook.Boook('texxt',[('toc',1,'partial'),('index',5,'partial'),('bar',5,'full'),('baz',5,'full'),('zab',5,'full'),('zoom',5,'full')],output_directory=source_path)
                 b.generate()
-                logger.info("{} set to {}".format(args.source_name,uuuu_path))
-                r.set(source_key_prefix+args.source_name,uuuu_path)
-    
-    s = zerorpc.Server(IndexableSource(directory=uuuu_path,name=args.source_name))
+                logger.info("{} set to {}".format(args.source_name,source_path))
+                r.set(source_key_prefix+args.source_name,source_path)
+
+    s = zerorpc.Server(Source(directory=source_path))
     bind_address = "tcp://{host}:{port}".format(host=args.host,port=args.port)
     logger.info("binding server to: {}".format(bind_address))
+    logger.info("sourcing from: {}".format(source_path))
     s.bind(bind_address)
     logger.info("running...")
     s.run()
