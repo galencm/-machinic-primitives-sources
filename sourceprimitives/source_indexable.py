@@ -57,13 +57,14 @@ class IndexableSource():
         self.marker_prefix = "marker:"
         self.state = "state:{}".format(kwargs['name'])
         self.markers = {}
-        #self.markers = r.hgetall(self.marker_key)
-        state = r.hgetall(self.state)
-        #markers = {k.replace(self.marker_prefix,""):v for (k,v) in state.items() if k.startswith(self.marker_prefix)}
-        markers = {k:v for (k,v) in state.items() if k.startswith(self.marker_prefix)}
-        self.markers = markers
+        self.check_state()
         #cache width/height?
         self.out_of_source = b''
+
+    def check_state(self):
+        state = r.hgetall(self.state)
+        markers = {k:v for (k,v) in state.items() if k.startswith(self.marker_prefix)}
+        self.markers = markers
 
     #cache based on sample
     @lru_cache(maxsize=32)
@@ -96,6 +97,9 @@ class IndexableSource():
         return self.state
 
     def source(self,marker_name):
+        # marker positions may have changed
+        # check state
+        self.check_state()
         marker_name=self.marker_prefix+marker_name
         directory = self.directory
         container = io.BytesIO()
@@ -128,10 +132,7 @@ class IndexableSource():
     def marker_remove(self,marker_name):
         marker_name=self.marker_prefix+marker_name
         r.hdel(self.state,marker_name)
-        state = r.hgetall(self.state)
-        markers = {k:v for (k,v) in state.items() if k.startswith(self.marker_prefix)}
-        self.markers = markers
-
+        self.check_state()
         #self.markers.pop(marker_name, None)
         #print(self.markers)
         #r.hmset(self.marker_key,self.markers)
@@ -151,9 +152,7 @@ class IndexableSource():
         r.hmset(self.state,self.markers)
 
     def position_of_markers(self):
-        state = r.hgetall(self.state)
-        markers = {k:v for (k,v) in state.items() if k.startswith(self.marker_prefix)}
-        self.markers = markers
+        self.check_state()
         return self.markers
 
     def position_of_markers_contents(self):
@@ -217,7 +216,7 @@ def main():
                 logger.info("{} set to {}".format(args.source_name,source_path))
                 r.set(source_key_prefix+args.source_name,source_path)
 
-    s = zerorpc.Server(Source(directory=source_path))
+    s = zerorpc.Server(IndexableSource(directory=source_path,name=args.source_name))
     bind_address = "tcp://{host}:{port}".format(host=args.host,port=args.port)
     logger.info("binding server to: {}".format(bind_address))
     logger.info("sourcing from: {}".format(source_path))
