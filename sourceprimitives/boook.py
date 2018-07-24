@@ -13,6 +13,7 @@ from PIL import ImageDraw
 import attr
 import roman
 import itertools
+from collections import OrderedDict
 import glob
 import os
 import csv
@@ -103,16 +104,26 @@ class Boook(object):
         sequence+=1
         generated.append(blank((240,240,1),sequence,self.title,section=section, dry_run=self.dry_run, output_directory=self.output_directory))
 
+        generated_with_headers = []
+        for line in generated:
+            filename, created, sequence, section, chapter_header, page_num = line
+            generated_with_headers.append(OrderedDict({"filename" : filename,
+                                      "created" : created,
+                                      "sequence" : sequence,
+                                      "section" : section,
+                                      "chapter_header" : chapter_header,
+                                      "page_number" : page_num}))
+
         for file_format in self.manifest_formats:
             if file_format == "csv":
                 if self.manifest_name == "title":
                     filename = "{}.{}".format(self.title, file_format)
                 else:
                     filename = "manifest.{}".format(self.title, file_format)
-                with open(filename, "w", newline="") as csvfile:
-                    writer = csv.writer(csvfile)
-                    for line in generated:
-                        writer.writerow(line)
+                with open(filename, "w") as csvfile:
+                    writer = csv.DictWriter(csvfile, generated_with_headers[0].keys())
+                    writer.writeheader()
+                    writer.writerows(generated_with_headers)
 
         if self.verbose_output:
             for line in generated:
