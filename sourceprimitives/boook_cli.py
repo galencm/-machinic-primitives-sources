@@ -5,6 +5,9 @@
 # Copyright (c) 2018, Galen Curwen-McAdams
 
 import argparse
+import itertools
+import random
+import subprocess
 from sourceprimitives import boook
 
 def main():
@@ -15,6 +18,9 @@ def main():
     parser.add_argument("--manifest", default=None, nargs="+", choices=["csv"], help="")
     parser.add_argument("--verbose", action="store_true", help="")
     parser.add_argument("--dry-run", action="store_true", help="generate manifests, but not image files")
+    parser.add_argument("--rotate", nargs="+", type=int, help="rotation values to cycle through. Uses imagemagick to rotate")
+    parser.add_argument("--rotate-jitter", type=int, default=0, help="random jitter added to rotation")
+
     args = parser.parse_args()
     # special sections "toc" and "index"
     # for example:
@@ -37,4 +43,16 @@ def main():
 
     # generate boook
     b = boook.Boook(args.title, args.section, manifest_formats=args.manifest, verbose_output=args.verbose, dry_run=args.dry_run, output_directory=args.output_path)
-    b.generate()
+    generated_files = b.generate()
+
+    if args.rotate:
+        rotations = itertools.cycle(args.rotate)
+        rotation = int(next(rotations))
+        for file in generated_files:
+            jitter = random.randint(0, args.rotate_jitter)
+            rotation += jitter
+            if args.verbose:
+                print("rotating {} to {} (jitter: {})".format(file, rotation, jitter))
+            # use mogrify to rotate files inplace
+            subprocess.call(["mogrify", "-rotate", str(rotation), file])
+            rotation = int(next(rotations))

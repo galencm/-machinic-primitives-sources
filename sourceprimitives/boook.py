@@ -129,6 +129,9 @@ class Boook(object):
             for line in generated:
                 print(line)
 
+        # return list of created files
+        return [line[0] for line in generated]
+
 def blank(color,sequence,boook_name,title=None,section=None,dry_run=False,output_directory=''):
     filename = '{}{:>04d}.jpg'.format(boook_name,sequence)
     created = time.time()
