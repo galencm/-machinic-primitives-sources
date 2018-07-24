@@ -15,6 +15,8 @@ import roman
 import itertools
 import glob
 import os
+import csv
+import time
 from logzero import logger
 
 #TODO pyicu for page numbers
@@ -25,10 +27,22 @@ class Boook(object):
     title = attr.ib()
     sections = attr.ib(default=attr.Factory(list))
     output_directory = attr.ib(default=".")
+    manifest_formats = attr.ib(default=attr.Factory(set))
+    manifest_name = attr.ib(default="title")
+    verbose_output =  attr.ib(default=False)
 
     def generate(self):
         if not os.path.isdir(self.output_directory):
             os.mkdir(self.output_directory)
+        # create/clear files to log to
+        # use a default manifest.format_type ?
+        for file_format in self.manifest_formats:
+            if self.manifest_name == "title":
+                filename = "{}.{}".format(self.title, file_format)
+            else:
+                filename = "manifest.{}".format(self.title, file_format)
+            open(filename, 'w').close()
+
         blank((240,240,1),0,self.title,title=self.title,output_directory=self.output_directory)
         blank((255,255,255),1,self.title,output_directory=self.output_directory)
         page_image(2,self.title,title=self.title,text=None,output_directory=self.output_directory)
@@ -36,6 +50,7 @@ class Boook(object):
 
         sequence= 4
         paged=1
+        generated = []
         for section,pages,numeration in self.sections:
             logger.info("section: {} sequence: {}".format(section,sequence))
             location = itertools.cycle(['bottom_left','bottom_right'])
@@ -46,10 +61,10 @@ class Boook(object):
                         adjusted_page=page+3 #hardcoded for title & toc
                     else:
                         adjusted_page=page
-                    page_image(sequence,self.title,page_num=adjusted_page,page_num_location='bottom_center',locale='roman_lower',split_width=75,paragraphs=16,sparsity=1,output_directory=self.output_directory)
+                    generated.append(page_image(sequence,self.title,page_num=adjusted_page,page_num_location='bottom_center',locale='roman_lower',split_width=75,paragraphs=16,sparsity=1,section=section, output_directory=self.output_directory))
                     sequence+=1
                 if sequence % 2 == 0:
-                    blank((255,255,255),sequence,self.title,output_directory=self.output_directory)
+                    generated.append(blank((255,255,255),sequence,self.title,section=section, output_directory=self.output_directory))
                     sequence+=1
             elif section == 'toc':
                 toc_text=''
@@ -59,36 +74,50 @@ class Boook(object):
                     if n == 'full':
                         start+=p
                 logger.info("toc contents: {}".format(toc_text))
-                page_image(sequence,self.title,custom_text=toc_text,page_num=sequence,page_num_location='bottom_center',locale='roman_lower',split_width=75,paragraphs=16,sparsity=-1,output_directory=self.output_directory)
+                generated.append(page_image(sequence,self.title,custom_text=toc_text,page_num=sequence,page_num_location='bottom_center',locale='roman_lower',split_width=75,paragraphs=16,sparsity=-1,section=section, output_directory=self.output_directory))
                 sequence +=1
             else:
                 for page in range(1,pages+1):
                     logger.info("sequence: {} section: {}".format(sequence,section))
                     if page == pages:
-                        page_image(sequence,self.title,page_num=paged,paragraphs=9,page_num_location=next(location),output_directory=self.output_directory)
+                        generated.append(page_image(sequence,self.title,page_num=paged,paragraphs=9,page_num_location=next(location),section=section, output_directory=self.output_directory))
                     elif page == 1:
-                        page_image(sequence,self.title,page_num=paged,title=section,paragraphs=9,y_start='half',page_num_location='bottom_center',output_directory=self.output_directory)
+                        generated.append(page_image(sequence,self.title,page_num=paged,title=section,paragraphs=9,y_start='half',page_num_location='bottom_center',section=section, output_directory=self.output_directory))
                     else:
                         if paged % 2 == 0:
-                            page_image(sequence,self.title,chapter_header=section,chapter_header_location='top_center',page_num=paged,page_num_location=next(location),output_directory=self.output_directory)
+                            generated.append(page_image(sequence,self.title,chapter_header=section,chapter_header_location='top_center',page_num=paged,page_num_location=next(location),section=section, output_directory=self.output_directory))
                         else:
-                            page_image(sequence,self.title,chapter_header=self.title,chapter_header_location='top_center',page_num=paged,page_num_location=next(location),output_directory=self.output_directory)
+                            generated.append(page_image(sequence,self.title,chapter_header=self.title,chapter_header_location='top_center',page_num=paged,page_num_location=next(location),section=section, output_directory=self.output_directory))
 
                     sequence+=1
                     paged+=1
 
         if sequence % 2 == 0:
-            blank((255,255,255),sequence,self.title,output_directory=self.output_directory)
+            generated.append(blank((255,255,255),sequence,self.title,section=section, output_directory=self.output_directory))
             sequence+=1
-            blank((255,255,255),sequence,self.title,output_directory=self.output_directory)
+            generated.append(blank((255,255,255),sequence,self.title,section=section, output_directory=self.output_directory))
             sequence+=1
 
-        blank((255,255,255),sequence,self.title,output_directory=self.output_directory)
+        generated.append(blank((255,255,255),sequence,self.title,section=section, output_directory=self.output_directory))
         sequence+=1
-        blank((240,240,1),sequence,self.title,output_directory=self.output_directory)
+        generated.append(blank((240,240,1),sequence,self.title,section=section, output_directory=self.output_directory))
 
+        for file_format in self.manifest_formats:
+            if file_format == "csv":
+                if self.manifest_name == "title":
+                    filename = "{}.{}".format(self.title, file_format)
+                else:
+                    filename = "manifest.{}".format(self.title, file_format)
+                with open(filename, "w", newline="") as csvfile:
+                    writer = csv.writer(csvfile)
+                    for line in generated:
+                        writer.writerow(line)
 
-def blank(color,sequence,boook_name,title=None,output_directory=''):
+        if self.verbose_output:
+            for line in generated:
+                print(line)
+
+def blank(color,sequence,boook_name,title=None,section=None,output_directory=''):
     img = Image.new('RGB',(1728,2304),color)
     w, h = img.size
     if title:
@@ -96,11 +125,13 @@ def blank(color,sequence,boook_name,title=None,output_directory=''):
         font = ImageFont.truetype("DejaVuSansMono.ttf", 60)
         draw.text((w/2,h/3),str(title),font=font, fill=(15,15,15))
 
-    img.save(os.path.join(output_directory,'{}{:>04d}.jpg'.format(boook_name,sequence)))
+    filename = '{}{:>04d}.jpg'.format(boook_name,sequence)
+    created = time.time()
+    img.save(os.path.join(output_directory, filename))
     img.close()
+    return filename, created, sequence, section, None, None
 
-
-def page_image(sequence,boook_name,chapter_header=None,chapter_header_location=None,page_num=None,text=True,custom_text=None,title=None,split_width=95,page_num_location="top_left",paragraphs=19,y_start=None,locale=None,sparsity=0,output_directory=''):
+def page_image(sequence,boook_name,chapter_header=None,chapter_header_location=None,page_num=None,text=True,custom_text=None,title=None,split_width=95,page_num_location="top_left",paragraphs=19,y_start=None,locale=None,sparsity=0,section=None,output_directory=''):
     if y_start is None:
         y_start = 'default'
 
@@ -175,12 +206,13 @@ def page_image(sequence,boook_name,chapter_header=None,chapter_header_location=N
     if chapter_header:
         draw.text(numeral_locations[chapter_header_location],str(chapter_header),font=font, fill=(15,15,15))
 
-
     if title:
         font = ImageFont.truetype("DejaVuSansMono.ttf", 50)
 
         draw.text(numeral_locations['center_top_third'],str(title),font=font, fill=(15,15,15))
 
-
-    img.save(os.path.join(output_directory,'{}{:>04d}.jpg'.format(boook_name,sequence)))
+    filename = '{}{:>04d}.jpg'.format(boook_name,sequence)
+    created = time.time()
+    img.save(os.path.join(output_directory, filename))
     img.close()
+    return filename, created, sequence, section, chapter_header, page_num

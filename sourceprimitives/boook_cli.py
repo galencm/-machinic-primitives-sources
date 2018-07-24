@@ -12,6 +12,7 @@ def main():
     parser.add_argument("--title", default="boook", help="")
     parser.add_argument("--section", default=None, action="append", nargs=3, metavar=('name', 'amount', 'numeration'), help="")
     parser.add_argument("--output-path", default=".", help="")
+    parser.add_argument("--manifest", default=None, nargs="+", choices=["csv"], help="")
     parser.add_argument("--verbose", action="store_true", help="")
     args = parser.parse_args()
     # special sections "toc" and "index"
@@ -34,5 +35,5 @@ def main():
             pass
 
     # generate boook
-    b = boook.Boook(args.title, args.section, output_directory=args.output_path)
+    b = boook.Boook(args.title, args.section, manifest_formats=args.manifest, verbose_output=args.verbose, output_directory=args.output_path)
     b.generate()
