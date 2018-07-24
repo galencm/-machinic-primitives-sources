@@ -13,7 +13,8 @@ name="sourceprimitives",
     packages=find_packages(),
     install_requires=['redis','logzero','zerorpc','python-consul','Pillow','lorem','roman'],
     entry_points = {'console_scripts': ['primitives-source-indexable = sourceprimitives.source_indexable:main',
-                                        'primitives-source-simple = sourceprimitives.source:main'
+                                        'primitives-source-simple = sourceprimitives.source:main',
+                                        'primitives-generate-boook = sourceprimitives.boook_cli:main'
                                         ],
                             },
 )
