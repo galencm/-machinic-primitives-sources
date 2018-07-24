@@ -14,6 +14,7 @@ def main():
     parser.add_argument("--output-path", default=".", help="")
     parser.add_argument("--manifest", default=None, nargs="+", choices=["csv"], help="")
     parser.add_argument("--verbose", action="store_true", help="")
+    parser.add_argument("--dry-run", action="store_true", help="generate manifests, but not image files")
     args = parser.parse_args()
     # special sections "toc" and "index"
     # for example:
@@ -35,5 +36,5 @@ def main():
             pass
 
     # generate boook
-    b = boook.Boook(args.title, args.section, manifest_formats=args.manifest, verbose_output=args.verbose, output_directory=args.output_path)
+    b = boook.Boook(args.title, args.section, manifest_formats=args.manifest, verbose_output=args.verbose, dry_run=args.dry_run, output_directory=args.output_path)
     b.generate()
