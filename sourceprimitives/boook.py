@@ -184,24 +184,3 @@ def page_image(sequence,boook_name,chapter_header=None,chapter_header_location=N
 
     img.save(os.path.join(output_directory,'{}{:>04d}.jpg'.format(boook_name,sequence)))
     img.close()
-
-
-#b = Boook('foo',[('index',5,'partial'),('bar',10,'full')])
-
-#b = Boook([('index',2),('bar',10)])
-#b.generate()
-
-#partial roman numerals
-#'front_material',20)
-#front_cover
-#back_cover
-
-
-#1 chapter 1          |             <chapter name> 2
-
-#1        <book name> | <chapter name>             2
-
-# b = Boook('texxt',[('toc',1,'partial'),('index',5,'partial'),('bar',5,'full'),('baz',5,'full'),('zab',15,'full'),('zoom',15,'full')],output_directory="/tmp/foo")
-# b.generate()
-
-
