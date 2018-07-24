@@ -44,14 +44,14 @@ class Boook(object):
                 filename = "manifest.{}".format(self.title, file_format)
             open(filename, 'w').close()
 
-        blank((240,240,1),0,self.title,title=self.title,dry_run=self.dry_run,output_directory=self.output_directory)
-        blank((255,255,255),1,self.title,dry_run=self.dry_run,output_directory=self.output_directory)
-        page_image(2,self.title,title=self.title,text=None,dry_run=self.dry_run,output_directory=self.output_directory)
-        blank((255,255,255),3,self.title,dry_run=self.dry_run,output_directory=self.output_directory)
+        generated = []
+        generated.append(blank((240,240,1),0,self.title,title=self.title,dry_run=self.dry_run,output_directory=self.output_directory))
+        generated.append(blank((255,255,255),1,self.title,dry_run=self.dry_run,output_directory=self.output_directory))
+        generated.append(page_image(2,self.title,title=self.title,text=None,dry_run=self.dry_run,output_directory=self.output_directory))
+        generated.append(blank((255,255,255),3,self.title,dry_run=self.dry_run,output_directory=self.output_directory))
 
         sequence= 4
         paged=1
-        generated = []
         for section,pages,numeration in self.sections:
             logger.info("section: {} sequence: {}".format(section,sequence))
             location = itertools.cycle(['bottom_left','bottom_right'])
